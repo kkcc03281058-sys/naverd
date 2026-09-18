@@ -42,9 +42,9 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         text_inputs.nth(0).fill(bun)
         text_inputs.nth(1).fill(ji)
 
-        # 주의: 같은 alt="검색"을 가진 안 보이는 버튼이 다른 탭에도 있어서
-        # CSS 선택자로 화면에 보이는 것만 정확히 지정
-        page.locator('input[alt="검색"]:visible').click()
+        # 이 버튼은 alt 속성이 아예 없고 onclick="searchAptName(1);"으로만
+        # 구분되므로 그걸로 지정
+        page.locator('input[onclick="searchAptName(1);"]').click()
         page.wait_for_timeout(1500)
 
         # 단지명/동/호 -> 각각 첫 번째 항목을 자동으로 선택
@@ -54,7 +54,8 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page.wait_for_timeout(500)
         page.locator("select:visible").nth(5).select_option(index=0)
 
-        page.locator('input[alt="열람하기"]:visible').click()
+        # "열람하기" 버튼은 실제로는 alt="검색", onclick="goPage('1')"으로 되어 있음
+        page.locator("input[onclick=\"goPage('1')\"]").click()
         page.wait_for_timeout(1500)
 
         # 결과 표에서 가장 최근(맨 위) 행의 "산정기초자료" 클릭 -> 새 창(팝업)
