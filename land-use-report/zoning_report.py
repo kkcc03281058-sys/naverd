@@ -13,9 +13,10 @@ import sys
 from playwright.sync_api import sync_playwright
 
 
-def fetch_land_use(address: str) -> str:
+def fetch_land_use(address: str, pdf_path: str) -> str:
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        # PDF 저장 기능은 Playwright에서 headless 모드에서만 지원됨
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto("https://www.eum.go.kr")
 
@@ -25,13 +26,12 @@ def fetch_land_use(address: str) -> str:
         page.wait_for_timeout(1500)  # 자동완성 목록이 뜰 때까지 대기
         search_box.press("ArrowDown")
         search_box.press("Enter")
-        page.wait_for_timeout(500)
 
-        page.get_by_role("button", name="열람").click()
         page.wait_for_url(re.compile("luLandDet"), timeout=15000)
         page.wait_for_timeout(1000)
 
         full_text = page.locator("body").inner_text()
+        page.pdf(path=pdf_path, format="A4", print_background=True)
         browser.close()
 
     return full_text
@@ -54,14 +54,17 @@ def parse_land_use_text(text: str) -> dict:
 
 if __name__ == "__main__":
     address = sys.argv[1] if len(sys.argv) > 1 else input("주소를 입력하세요: ")
+    pdf_path = f"{address.replace(' ', '_')}_토지이용계획.pdf"
     print(f"'{address}' 조회 중...\n")
 
-    raw_text = fetch_land_use(address)
+    raw_text = fetch_land_use(address, pdf_path)
     info = parse_land_use_text(raw_text)
 
     print("===== 토지이용계획 조회 결과 =====")
     for key, value in info.items():
         print(f"{key}: {value}")
+
+    print(f"\nPDF 저장됨: {pdf_path}")
 
     print("\n===== 원본 텍스트 (파싱이 안 맞으면 이 부분을 참고) =====")
     print(raw_text[:1500])
