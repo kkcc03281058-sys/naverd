@@ -29,6 +29,15 @@ function getAllowedChatIds(props) {
     .filter(function (id) { return id.length > 0; });
 }
 
+function isDuplicateUpdate(updateId) {
+  if (updateId === undefined || updateId === null) return false;
+  var cache = CacheService.getScriptCache();
+  var key = 'update_' + updateId;
+  if (cache.get(key)) return true;
+  cache.put(key, '1', 21600); // 6시간 동안 같은 update_id 재처리 방지
+  return false;
+}
+
 function doPost(e) {
   var props = PropertiesService.getScriptProperties();
   var token = props.getProperty('TELEGRAM_BOT_TOKEN');
@@ -37,6 +46,11 @@ function doPost(e) {
   try {
     var allowedChatIds = getAllowedChatIds(props);
     var update = JSON.parse(e.postData.contents);
+
+    if (isDuplicateUpdate(update.update_id)) {
+      return ContentService.createTextOutput('ok'); // 텔레그램이 재전송한 동일 메시지, 무시
+    }
+
     var message = update.message;
     if (!message) return ContentService.createTextOutput('ok');
 
