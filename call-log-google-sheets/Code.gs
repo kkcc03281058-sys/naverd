@@ -1,9 +1,16 @@
 /**
- * 통화 기록 -> 구글 시트 자동 저장 텔레그램 봇
+ * 통화 기록 -> 구글 시트 자동 저장 텔레그램 봇 (폴링 방식)
  *
  * 동작 방식
- *  1) 텔레그램으로 전화번호를 텍스트로 보내면 -> 파싱해서 시트에 한 줄 기록
- *  2) 통화기록 캡처 사진을 보내면 -> OCR로 텍스트 추출 후 같은 방식으로 기록
+ *  - 1분마다(시간 기반 트리거) 텔레그램에 새 메시지가 있는지 직접 확인(getUpdates)
+ *  - 전화번호를 텍스트로 보내면 -> 파싱해서 시트에 한 줄 기록
+ *  - 통화기록 캡처 사진을 보내면 -> OCR로 텍스트 추출 후 같은 방식으로 기록
+ *
+ * 웹훅(doPost) 대신 폴링을 쓰는 이유
+ *  Apps Script 웹앱은 응답 시 내부적으로 302 리다이렉트를 거치는데,
+ *  텔레그램의 웹훅 전송기는 리다이렉트를 따라가지 않아 계속 실패로 처리한다.
+ *  반대로 우리가 텔레그램에 직접 요청을 보내는 방식(getUpdates/sendMessage)은
+ *  이 문제가 없으므로 폴링 방식을 사용한다.
  *
  * 사전 준비 (스크립트 속성에 등록, "프로젝트 설정 > 스크립트 속성")
  *   TELEGRAM_BOT_TOKEN : @BotFather 에서 발급받은 봇 토큰
@@ -14,10 +21,13 @@
  * 사전 준비 (Apps Script 편집기)
  *   좌측 "서비스(+)" -> Drive API (고급 서비스) 추가  <- OCR에 필요
  *
- * 배포
- *   배포 > 새 배포 > 웹 앱, 실행: 나, 액세스 권한: 모든 사용자
- *   배포 후 나오는 웹앱 URL을 아래 주소로 한 번 접속해서 텔레그램 웹훅으로 등록
- *   https://api.telegram.org/bot<TOKEN>/setWebhook?url=<웹앱URL>
+ * 트리거 설정 (필수)
+ *   좌측 시계 모양 "트리거" 메뉴 -> 우측 하단 "트리거 추가"
+ *   -> 실행할 함수: checkTelegramUpdates
+ *   -> 이벤트 소스: 시간 기반 트리거
+ *   -> 시간 기반 트리거 유형: 분 단위 타이머
+ *   -> 시간 간격: 1분마다
+ *   -> 저장
  */
 
 var HEADER = ['날짜', '전화번호', '통화시작', '메모', '사진', '등록시각'];
@@ -29,36 +39,44 @@ function getAllowedChatIds(props) {
     .filter(function (id) { return id.length > 0; });
 }
 
-function isDuplicateUpdate(updateId) {
-  if (updateId === undefined || updateId === null) return false;
-  var cache = CacheService.getScriptCache();
-  var key = 'update_' + updateId;
-  if (cache.get(key)) return true;
-  cache.put(key, '1', 21600); // 6시간 동안 같은 update_id 재처리 방지
-  return false;
-}
-
-function doPost(e) {
+function checkTelegramUpdates() {
   var props = PropertiesService.getScriptProperties();
   var token = props.getProperty('TELEGRAM_BOT_TOKEN');
-  var chatId = null;
+  var lastUpdateId = Number(props.getProperty('LAST_UPDATE_ID') || '0');
+
+  var url = 'https://api.telegram.org/bot' + token + '/getUpdates'
+    + '?offset=' + (lastUpdateId + 1) + '&timeout=0';
+  var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+
+  if (response.getResponseCode() !== 200) {
+    logError(new Error('getUpdates 실패: ' + response.getContentText()), null);
+    return;
+  }
+
+  var data = JSON.parse(response.getContentText());
+  if (!data.ok || !data.result || data.result.length === 0) return;
+
+  var allowedChatIds = getAllowedChatIds(props);
+  var maxUpdateId = lastUpdateId;
+
+  data.result.forEach(function (update) {
+    if (update.update_id > maxUpdateId) maxUpdateId = update.update_id;
+    processUpdate(update, token, allowedChatIds);
+  });
+
+  props.setProperty('LAST_UPDATE_ID', String(maxUpdateId));
+}
+
+function processUpdate(update, token, allowedChatIds) {
+  var message = update.message;
+  if (!message) return;
+
+  var chatId = message.chat.id;
+  if (allowedChatIds.length > 0 && allowedChatIds.indexOf(String(chatId)) === -1) {
+    return; // 허용되지 않은 사용자는 무시
+  }
 
   try {
-    var allowedChatIds = getAllowedChatIds(props);
-    var update = JSON.parse(e.postData.contents);
-
-    if (isDuplicateUpdate(update.update_id)) {
-      return ContentService.createTextOutput('ok'); // 텔레그램이 재전송한 동일 메시지, 무시
-    }
-
-    var message = update.message;
-    if (!message) return ContentService.createTextOutput('ok');
-
-    chatId = message.chat.id;
-    if (allowedChatIds.length > 0 && allowedChatIds.indexOf(String(chatId)) === -1) {
-      return ContentService.createTextOutput('ok'); // 허용되지 않은 사용자는 무시
-    }
-
     var record = message.photo
       ? buildRecordFromPhoto(message, token)
       : buildRecordFromText(message);
@@ -70,17 +88,13 @@ function doPost(e) {
       '\n통화시작: ' + record.callTime +
       '\n메모: ' + (record.memo || '-'));
   } catch (err) {
-    logError(err, e);
-    if (token && chatId) {
-      try {
-        replyTelegram(token, chatId, '⚠️ 기록 실패: ' + err.message);
-      } catch (err2) {
-        // 텔레그램 응답 전송도 실패하면 에러로그 시트만 남긴다
-      }
+    logError(err, { postData: { contents: JSON.stringify(update) } });
+    try {
+      replyTelegram(token, chatId, '⚠️ 기록 실패: ' + err.message);
+    } catch (err2) {
+      // 텔레그램 응답 전송도 실패하면 에러로그 시트만 남긴다
     }
   }
-
-  return ContentService.createTextOutput('ok');
 }
 
 function logError(err, e) {
