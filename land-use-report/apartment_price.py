@@ -38,7 +38,7 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page.locator('input[name="rdoCondi"][value="1"]').check()
         page.wait_for_timeout(500)
 
-        text_inputs = page.locator("input[type=text]")
+        text_inputs = page.locator("input[type=text]:visible")
         text_inputs.nth(0).fill(bun)
         text_inputs.nth(1).fill(ji)
 
