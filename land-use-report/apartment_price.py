@@ -20,7 +20,9 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page.goto("https://www.realtyprice.kr/notice/town/searchPastYear.htm")
         page.wait_for_timeout(2000)
 
-        page.get_by_role("button", name=re.compile("지번\\s*검색")).click()
+        # 이 사이트의 버튼들은 진짜 버튼이 아니라 alt 속성이 붙은 이미지(gif)로
+        # 만들어져 있어서 get_by_alt_text로 찾는다.
+        page.get_by_alt_text(re.compile("지번\\s*검색")).click()
         page.wait_for_timeout(500)
 
         selects = page.locator("select")
@@ -38,7 +40,8 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         text_inputs.nth(0).fill(bun)
         text_inputs.nth(1).fill(ji)
 
-        page.get_by_role("button", name="검색").click()
+        # 주의: "지번검색" 탭 버튼도 alt에 "검색"이 들어있으므로 정확히 "검색"인 것만 선택
+        page.get_by_alt_text("검색", exact=True).click()
         page.wait_for_timeout(1500)
 
         # 단지명/동/호 -> 각각 첫 번째 항목을 자동으로 선택
@@ -48,7 +51,7 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page.wait_for_timeout(500)
         page.locator("select").nth(5).select_option(index=0)
 
-        page.get_by_role("button", name="열람하기").click()
+        page.get_by_alt_text("열람하기").click()
         page.wait_for_timeout(1500)
 
         # 결과 표에서 가장 최근(맨 위) 행의 "산정기초자료" 클릭 -> 새 창(팝업)
