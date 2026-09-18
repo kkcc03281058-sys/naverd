@@ -36,6 +36,14 @@ def fetch_land_use(address: str) -> str:
 
 
 def parse_land_use_text(text: str) -> dict:
+    # 화면 제목 줄("토지이용계획 - 소재지, 지목, 면적 및 개별공시지가")에도
+    # 같은 단어들이 나와서 혼동되므로, 그 줄을 건너뛰고 실제 값이 나오는
+    # 지점부터 파싱한다.
+    anchor = "및 개별공시지가"
+    idx = text.find(anchor)
+    if idx != -1:
+        text = text[idx + len(anchor):]
+
     def extract(label, stop_labels):
         stop_pattern = "|".join(re.escape(s) for s in stop_labels)
         pattern = re.escape(label) + r"\s*(.*?)\s*(?=" + stop_pattern + r"|$)"
@@ -46,7 +54,7 @@ def parse_land_use_text(text: str) -> dict:
         "소재지": extract("소재지", ["지목"]),
         "지목": extract("지목", ["면적"]),
         "면적": extract("면적", ["개별공시지가"]),
-        "개별공시지가": extract("개별공시지가", ["지역지구등"]),
+        "개별공시지가": extract("개별공시지가", ["토지이용계획"]),
     }
 
 
@@ -60,6 +68,3 @@ if __name__ == "__main__":
     print("===== 토지이용계획 조회 결과 =====")
     for key, value in info.items():
         print(f"{key}: {value}")
-
-    print("\n===== 원본 텍스트 (파싱이 안 맞으면 이 부분을 참고) =====")
-    print(raw_text[:1500])
