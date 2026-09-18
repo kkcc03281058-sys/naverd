@@ -67,6 +67,9 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         else:
             ho_select.select_option(index=0)
 
+        page.wait_for_timeout(500)
+        page.screenshot(path="debug2.png", full_page=True)
+
         # 같은 onclick을 가진 버튼이 2개 있어 alt="열람하기"로 정확히 구분
         page.locator('input[alt="열람하기"]').click()
         page.wait_for_timeout(1500)
