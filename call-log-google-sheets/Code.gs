@@ -189,12 +189,12 @@ function downloadTelegramFile(token, fileId) {
 }
 
 function ocrImage(blob) {
-  // Drive 고급 서비스(Drive API v2)를 이용한 무료 OCR
+  // Drive 고급 서비스(Drive API v3)를 이용한 무료 OCR
   var resource = {
-    title: 'ocr_temp_' + new Date().getTime(),
-    mimeType: blob.getContentType()
+    name: 'ocr_temp_' + new Date().getTime(),
+    mimeType: MimeType.GOOGLE_DOCS // 변환 대상(구글 문서)을 지정해야 OCR 변환이 동작함
   };
-  var ocrFile = Drive.Files.insert(resource, blob, { ocr: true, ocrLanguage: 'ko' });
+  var ocrFile = Drive.Files.create(resource, blob, { ocr: true, ocrLanguage: 'ko' });
   var doc = DocumentApp.openById(ocrFile.id);
   var text = doc.getBody().getText();
   Drive.Files.remove(ocrFile.id); // 임시 OCR 문서 삭제 (원본 캡처 사진은 별도로 남아있음)
