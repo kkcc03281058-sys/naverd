@@ -151,16 +151,20 @@ function parseCallInfo(rawText, telegramDateSec) {
     : Utilities.formatDate(now, tz, 'yyyy-MM-dd');
 
   var timeMatch = text.match(/(오전|오후)?\s*(\d{1,2})[:시](\d{2})/);
-  var callTime;
+  var hour24, minute;
   if (timeMatch) {
-    var hour = parseInt(timeMatch[2], 10);
-    var minute = timeMatch[3];
-    if (timeMatch[1] === '오후' && hour < 12) hour += 12;
-    if (timeMatch[1] === '오전' && hour === 12) hour = 0;
-    callTime = ('0' + hour).slice(-2) + ':' + minute;
+    hour24 = parseInt(timeMatch[2], 10);
+    minute = timeMatch[3];
+    if (timeMatch[1] === '오후' && hour24 < 12) hour24 += 12;
+    if (timeMatch[1] === '오전' && hour24 === 12) hour24 = 0;
   } else {
-    callTime = Utilities.formatDate(now, tz, 'HH:mm');
+    hour24 = Number(Utilities.formatDate(now, tz, 'H'));
+    minute = Utilities.formatDate(now, tz, 'mm');
   }
+  var ampmLabel = hour24 < 12 ? '오전' : '오후';
+  var displayHour = hour24 % 12;
+  if (displayHour === 0) displayHour = 12;
+  var callTime = ampmLabel + ' ' + displayHour + ':' + minute;
 
   var memo = text
     .replace(phoneMatch ? phoneMatch[0] : '', '')
