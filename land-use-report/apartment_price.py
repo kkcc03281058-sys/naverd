@@ -18,6 +18,8 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto("https://www.realtyprice.kr/notice/town/searchPastYear.htm")
+        page.wait_for_timeout(2000)
+        page.screenshot(path="debug1.png", full_page=True)
 
         page.get_by_text("지번 검색", exact=True).click()
 
