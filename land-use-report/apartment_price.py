@@ -95,7 +95,9 @@ def parse_apartment_popup(text: str) -> dict:
         stop_idx = segment.find(stop)
         if stop_idx != -1:
             segment = segment[:stop_idx]
-        return [v.strip() for v in re.split(r"\s{2,}", segment.strip()) if v.strip()]
+        # 화면에는 여러 칸 공백처럼 보여도 실제로는 탭 문자(\t) 하나인 경우가 있어
+        # 탭 1개 이상 또는 공백 2칸 이상을 모두 구분자로 인식
+        return [v.strip() for v in re.split(r"\t+|[ ]{2,}", segment.strip()) if v.strip()]
 
     def get(values, i):
         return values[i] if len(values) > i else "(찾을 수 없음)"
