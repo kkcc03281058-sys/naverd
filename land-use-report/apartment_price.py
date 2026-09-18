@@ -21,9 +21,8 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page.wait_for_timeout(2000)
 
         # 이 사이트의 버튼들은 진짜 버튼이 아니라 alt 속성이 붙은 이미지(gif)로
-        # 만들어져 있고, 같은 alt를 가진 안 보이는 버튼이 다른 탭에도 있어서
-        # CSS 선택자 + :visible로 화면에 보이는 것만 지정한다.
-        page.locator('input[alt="지번검색"]:visible').click()
+        # 만들어져 있어서 get_by_alt_text로 찾는다 (공백 유무가 있을 수 있어 정규식 사용).
+        page.get_by_alt_text(re.compile("지번\\s*검색")).click()
         page.wait_for_timeout(500)
 
         selects = page.locator("select:visible")
