@@ -33,7 +33,9 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         selects.nth(2).select_option(label=eupmyeondong)
         page.wait_for_timeout(500)
 
-        page.get_by_text("지번 입력", exact=True).click(force=True)
+        # "지번 입력" 텍스트가 여러 군데 있어서 혼동됐음. 실제로는
+        # name="rdoCondi" value="1"인 라디오 버튼이 진짜 대상.
+        page.locator('input[name="rdoCondi"][value="1"]').check()
         page.wait_for_timeout(500)
 
         text_inputs = page.locator("input[type=text]")
