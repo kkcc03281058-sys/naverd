@@ -19,9 +19,9 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page = browser.new_page()
         page.goto("https://www.realtyprice.kr/notice/town/searchPastYear.htm")
         page.wait_for_timeout(2000)
-        page.screenshot(path="debug1.png", full_page=True)
 
-        page.get_by_text("지번 검색", exact=True).click()
+        page.get_by_role("button", name=re.compile("지번\\s*검색")).click()
+        page.wait_for_timeout(500)
 
         selects = page.locator("select")
         selects.nth(0).select_option(label=sido)
@@ -31,7 +31,8 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         selects.nth(2).select_option(label=eupmyeondong)
         page.wait_for_timeout(500)
 
-        page.get_by_text("지번 입력", exact=True).click()
+        page.get_by_text(re.compile("지번\\s*입력")).click()
+        page.wait_for_timeout(500)
 
         text_inputs = page.locator("input[type=text]")
         text_inputs.nth(0).fill(bun)
