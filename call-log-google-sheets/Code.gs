@@ -126,11 +126,10 @@ function buildRecordFromPhoto(message, token) {
   var ocrText = ocrImage(blob);
   var captionText = message.caption || '';
 
-  // 전화번호/날짜/시간은 사진 OCR 결과에서, 메모는 캡션이 있으면 그걸 그대로 사용
+  // 전화번호/날짜/시간은 사진 OCR 결과에서 추출. 메모는 캡션이 있을 때만 채우고,
+  // 캡션이 없으면 OCR 찌꺼기를 넣지 않고 비워둔다(사진 링크로 원본 확인 가능).
   var parsed = parseCallInfo(ocrText, message.date);
-  if (captionText) {
-    parsed.memo = captionText;
-  }
+  parsed.memo = captionText;
 
   var driveFile = DriveApp.createFile(blob).setName('call_' + new Date().getTime());
   parsed.photoUrl = driveFile.getUrl();
