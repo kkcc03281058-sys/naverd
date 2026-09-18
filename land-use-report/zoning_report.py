@@ -19,7 +19,7 @@ def fetch_land_use(address: str) -> str:
         page = browser.new_page()
         page.goto("https://www.eum.go.kr")
 
-        search_box = page.get_by_placeholder(re.compile("지번"))
+        search_box = page.get_by_role("textbox", name="주소검색")
         search_box.click()
         search_box.fill(address)
         page.wait_for_timeout(1500)  # 자동완성 목록이 뜰 때까지 대기
