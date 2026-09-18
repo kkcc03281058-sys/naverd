@@ -158,6 +158,10 @@ function parseCallInfo(rawText, telegramDateSec) {
     .replace(/\s+/g, ' ')
     .trim();
 
+  if (memo.length > 200) {
+    memo = memo.slice(0, 200) + '...(길어서 생략, 사진 원본 확인)';
+  }
+
   return { date: dateStr, phone: phone, callTime: callTime, memo: memo };
 }
 
@@ -202,10 +206,11 @@ function ocrImage(blob) {
 }
 
 function replyTelegram(token, chatId, text) {
-  var url = 'https://api.telegram.org/bot' + token + '/sendMessage'
-    + '?chat_id=' + encodeURIComponent(chatId)
-    + '&text=' + encodeURIComponent(text);
-  var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  var response = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+    method: 'post',
+    payload: { chat_id: String(chatId), text: text },
+    muteHttpExceptions: true
+  });
   if (response.getResponseCode() !== 200) {
     logError(new Error('sendMessage 실패: ' + response.getContentText()), null);
   }
