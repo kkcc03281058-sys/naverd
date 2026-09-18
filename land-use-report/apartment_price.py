@@ -67,11 +67,8 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         else:
             ho_select.select_option(index=0)
 
-        page.wait_for_timeout(500)
-        page.screenshot(path="debug2.png", full_page=True)
-
-        # 같은 onclick을 가진 버튼이 2개 있어 alt="열람하기"로 정확히 구분
-        page.locator('input[alt="열람하기"]').click()
+        # 실제 화면에 보이는 건 alt="검색"이지만 class="btn-src3"인 이 버튼임
+        page.locator('input.btn-src3[onclick="goPage(\'1\')"]').click()
         page.wait_for_timeout(1500)
 
         # 결과 표에서 가장 최근(맨 위) 행의 "산정기초자료" 클릭 -> 새 창(팝업)
