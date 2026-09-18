@@ -4,8 +4,8 @@
 자동 조회하는 스크립트. 로그인이 필요 없는 사이트라 완전 자동으로 동작합니다.
 
 사용법 (명령 프롬프트에서):
-    py apartment_price.py "경기도" "광주시" "능평동" "488" "15"
-    (시도, 시군구, 읍면동, 본번, 부번 순서)
+    py apartment_price.py "경기도" "광주시" "능평동" "488" "15" "F" "102"
+    (시도, 시군구, 읍면동, 본번, 부번, 동, 호 순서. 동/호는 생략하면 첫 번째 항목 자동 선택)
 """
 
 import re
@@ -13,7 +13,8 @@ import sys
 from playwright.sync_api import sync_playwright
 
 
-def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, ji: str) -> str:
+def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, ji: str,
+                           dong: str = None, ho: str = None) -> str:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
@@ -47,12 +48,24 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page.locator('input[onclick="searchAptName(1);"]').click()
         page.wait_for_timeout(1500)
 
-        # 단지명/동/호 -> 각각 첫 번째 항목을 자동으로 선택
+        # 단지명 -> 해당 지번에는 보통 단지가 하나뿐이라 첫 번째 항목 선택
         page.locator("select:visible").nth(3).select_option(index=0)
         page.wait_for_timeout(500)
-        page.locator("select:visible").nth(4).select_option(index=0)
+
+        # 동 -> 지정한 동이 있으면 그걸로, 없으면 첫 번째 항목
+        dong_select = page.locator("select:visible").nth(4)
+        if dong:
+            dong_select.select_option(label=dong)
+        else:
+            dong_select.select_option(index=0)
         page.wait_for_timeout(500)
-        page.locator("select:visible").nth(5).select_option(index=0)
+
+        # 호 -> 지정한 호가 있으면 그걸로, 없으면 첫 번째 항목
+        ho_select = page.locator("select:visible").nth(5)
+        if ho:
+            ho_select.select_option(label=ho)
+        else:
+            ho_select.select_option(index=0)
 
         # "열람하기" 버튼은 실제로는 alt="검색", onclick="goPage('1')"으로 되어 있음
         page.locator("input[onclick=\"goPage('1')\"]").click()
@@ -92,17 +105,25 @@ def parse_apartment_popup(text: str) -> dict:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 6:
+    dong = None
+    ho = None
+    if len(sys.argv) >= 6:
         sido, sigungu, eupmyeondong, bun, ji = sys.argv[1:6]
+        if len(sys.argv) >= 7:
+            dong = sys.argv[6]
+        if len(sys.argv) >= 8:
+            ho = sys.argv[7]
     else:
         sido = input("시/도 (예: 경기도): ")
         sigungu = input("시/군/구 (예: 광주시): ")
         eupmyeondong = input("읍/면/동 (예: 능평동): ")
         bun = input("본번 (예: 488): ")
         ji = input("부번 (예: 15): ")
+        dong = input("동 (모르면 그냥 Enter): ") or None
+        ho = input("호 (모르면 그냥 Enter): ") or None
 
     print("조회 중...\n")
-    raw_text = fetch_apartment_price(sido, sigungu, eupmyeondong, bun, ji)
+    raw_text = fetch_apartment_price(sido, sigungu, eupmyeondong, bun, ji, dong, ho)
     info = parse_apartment_popup(raw_text)
 
     print("===== 공동주택 공시가격 조회 결과 =====")
