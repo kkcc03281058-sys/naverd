@@ -33,7 +33,7 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         selects.nth(2).select_option(label=eupmyeondong)
         page.wait_for_timeout(500)
 
-        page.get_by_text(re.compile("지번\\s*입력")).click()
+        page.get_by_text("지번 입력", exact=True).click()
         page.wait_for_timeout(500)
 
         text_inputs = page.locator("input[type=text]")
