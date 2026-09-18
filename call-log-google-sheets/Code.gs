@@ -174,8 +174,12 @@ function ocrImage(blob) {
 }
 
 function replyTelegram(token, chatId, text) {
-  UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+  var response = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
     method: 'post',
-    payload: { chat_id: chatId, text: text }
+    payload: { chat_id: String(chatId), text: text },
+    muteHttpExceptions: true
   });
+  if (response.getResponseCode() !== 200) {
+    logError(new Error('sendMessage 실패: ' + response.getContentText()), null);
+  }
 }
