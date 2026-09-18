@@ -25,7 +25,7 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page.get_by_alt_text(re.compile("지번\\s*검색")).click()
         page.wait_for_timeout(500)
 
-        selects = page.locator("select")
+        selects = page.locator("select:visible")
         selects.nth(0).select_option(label=sido)
         page.wait_for_timeout(500)
         selects.nth(1).select_option(label=sigungu)
@@ -45,11 +45,11 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page.wait_for_timeout(1500)
 
         # 단지명/동/호 -> 각각 첫 번째 항목을 자동으로 선택
-        page.locator("select").nth(3).select_option(index=0)
+        page.locator("select:visible").nth(3).select_option(index=0)
         page.wait_for_timeout(500)
-        page.locator("select").nth(4).select_option(index=0)
+        page.locator("select:visible").nth(4).select_option(index=0)
         page.wait_for_timeout(500)
-        page.locator("select").nth(5).select_option(index=0)
+        page.locator("select:visible").nth(5).select_option(index=0)
 
         page.get_by_alt_text("열람하기").click()
         page.wait_for_timeout(1500)
