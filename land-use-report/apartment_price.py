@@ -85,23 +85,37 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
 
 
 def parse_apartment_popup(text: str) -> dict:
-    def extract(label, stop_labels):
-        stop_pattern = "|".join(re.escape(s) for s in stop_labels)
-        pattern = re.escape(label) + r"\s*(.*?)\s*(?=" + stop_pattern + r"|$)"
-        m = re.search(pattern, text, re.DOTALL)
-        return m.group(1).strip() if m else "(찾을 수 없음)"
+    # 이 팝업도 "헤더 줄" 다음에 "실제 값 줄"이 오는 표 구조라, 마지막 헤더 단어
+    # 바로 뒤부터 다음 구간 전까지를 잘라서 공백 2칸 이상 기준으로 셀을 나눈다.
+    def value_row_after(anchor, stop):
+        idx = text.find(anchor)
+        if idx == -1:
+            return []
+        segment = text[idx + len(anchor):]
+        stop_idx = segment.find(stop)
+        if stop_idx != -1:
+            segment = segment[:stop_idx]
+        return [v.strip() for v in re.split(r"\s{2,}", segment.strip()) if v.strip()]
+
+    def get(values, i):
+        return values[i] if len(values) > i else "(찾을 수 없음)"
+
+    price_row = value_row_after("금년가격(원)", "위치도")
+    row1 = value_row_after("건물구조", "사용승인연도")
+    row2 = value_row_after("세대수", "건폐율")
 
     return {
-        "소재지": extract("소재지", ["단지명"]),
-        "단지명": extract("단지명", ["동/호"]),
-        "동/호": extract("동/호", ["전년가격"]),
-        "전년가격": extract("전년가격(원)", ["금년가격"]),
-        "금년가격": extract("금년가격(원)", ["위치도"]),
-        "용도": extract("용도", ["용도지역"]),
-        "용도지역": extract("용도지역", ["건물구조"]),
-        "건물구조": extract("건물구조", ["사용승인연도"]),
-        "사용승인연도": extract("사용승인연도", ["동수"]),
-        "세대수": extract("세대수", ["건폐율"]),
+        "소재지": get(price_row, 0),
+        "단지명": get(price_row, 1),
+        "동/호": get(price_row, 2),
+        "전년가격": get(price_row, 3),
+        "금년가격": get(price_row, 4),
+        "용도": get(row1, 0),
+        "용도지역": get(row1, 1),
+        "건물구조": get(row1, 2),
+        "사용승인연도": get(row2, 0),
+        "동수": get(row2, 1),
+        "세대수": get(row2, 2),
     }
 
 
