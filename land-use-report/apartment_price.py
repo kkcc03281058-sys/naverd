@@ -71,9 +71,10 @@ def fetch_apartment_price(sido: str, sigungu: str, eupmyeondong: str, bun: str, 
         page.locator('input.btn-src3[onclick="goPage(\'1\')"]').click()
         page.wait_for_timeout(1500)
 
-        # 결과 표에서 가장 최근(맨 위) 행의 "산정기초자료" 클릭 -> 새 창(팝업)
+        # "산정기초자료"는 텍스트가 아니라 이미지(onclick="goBasePrint(...)")임.
+        # 맨 위(가장 최근 연도) 행의 것을 클릭 -> 새 창(팝업)
         with page.expect_popup() as popup_info:
-            page.get_by_text("산정기초자료").first.click()
+            page.locator('img[onclick^="goBasePrint"]').first.click()
         popup = popup_info.value
         popup.wait_for_load_state()
 
