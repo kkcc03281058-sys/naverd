@@ -150,10 +150,17 @@ function parseCallInfo(rawText, telegramDateSec) {
     ? dateMatch[1] + '-' + ('0' + dateMatch[2]).slice(-2) + '-' + ('0' + dateMatch[3]).slice(-2)
     : Utilities.formatDate(now, tz, 'yyyy-MM-dd');
 
-  var timeMatch = text.match(/(\d{1,2})[:시](\d{2})/);
-  var callTime = timeMatch
-    ? ('0' + timeMatch[1]).slice(-2) + ':' + timeMatch[2]
-    : Utilities.formatDate(now, tz, 'HH:mm');
+  var timeMatch = text.match(/(오전|오후)?\s*(\d{1,2})[:시](\d{2})/);
+  var callTime;
+  if (timeMatch) {
+    var hour = parseInt(timeMatch[2], 10);
+    var minute = timeMatch[3];
+    if (timeMatch[1] === '오후' && hour < 12) hour += 12;
+    if (timeMatch[1] === '오전' && hour === 12) hour = 0;
+    callTime = ('0' + hour).slice(-2) + ':' + minute;
+  } else {
+    callTime = Utilities.formatDate(now, tz, 'HH:mm');
+  }
 
   var memo = text
     .replace(phoneMatch ? phoneMatch[0] : '', '')
