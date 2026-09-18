@@ -7,7 +7,8 @@
  *
  * 사전 준비 (스크립트 속성에 등록, "프로젝트 설정 > 스크립트 속성")
  *   TELEGRAM_BOT_TOKEN : @BotFather 에서 발급받은 봇 토큰
- *   ALLOWED_CHAT_ID    : 본인 텔레그램 chat_id (미입력 시 아무나 봇에 기록 가능하므로 반드시 등록 권장)
+ *   ALLOWED_CHAT_ID    : 허용할 텔레그램 chat_id (여러 명이면 콤마로 구분, 예: "111,222,333")
+ *                        (미입력 시 아무나 봇에 기록 가능하므로 반드시 등록 권장)
  *   SHEET_NAME         : 기록할 시트 이름 (미입력 시 "통화기록")
  *
  * 사전 준비 (Apps Script 편집기)
@@ -21,17 +22,24 @@
 
 var HEADER = ['날짜', '전화번호', '통화시작', '메모', '사진', '등록시각'];
 
+function getAllowedChatIds(props) {
+  var raw = props.getProperty('ALLOWED_CHAT_ID') || '';
+  return raw.split(',')
+    .map(function (id) { return id.trim(); })
+    .filter(function (id) { return id.length > 0; });
+}
+
 function doPost(e) {
   var props = PropertiesService.getScriptProperties();
   var token = props.getProperty('TELEGRAM_BOT_TOKEN');
-  var allowedChatId = props.getProperty('ALLOWED_CHAT_ID');
+  var allowedChatIds = getAllowedChatIds(props);
 
   var update = JSON.parse(e.postData.contents);
   var message = update.message;
   if (!message) return ContentService.createTextOutput('ok');
 
   var chatId = message.chat.id;
-  if (allowedChatId && String(chatId) !== String(allowedChatId)) {
+  if (allowedChatIds.length > 0 && allowedChatIds.indexOf(String(chatId)) === -1) {
     return ContentService.createTextOutput('ok'); // 허용되지 않은 사용자는 무시
   }
 
