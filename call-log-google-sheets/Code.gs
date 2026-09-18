@@ -32,18 +32,19 @@ function getAllowedChatIds(props) {
 function doPost(e) {
   var props = PropertiesService.getScriptProperties();
   var token = props.getProperty('TELEGRAM_BOT_TOKEN');
-  var allowedChatIds = getAllowedChatIds(props);
-
-  var update = JSON.parse(e.postData.contents);
-  var message = update.message;
-  if (!message) return ContentService.createTextOutput('ok');
-
-  var chatId = message.chat.id;
-  if (allowedChatIds.length > 0 && allowedChatIds.indexOf(String(chatId)) === -1) {
-    return ContentService.createTextOutput('ok'); // 허용되지 않은 사용자는 무시
-  }
+  var chatId = null;
 
   try {
+    var allowedChatIds = getAllowedChatIds(props);
+    var update = JSON.parse(e.postData.contents);
+    var message = update.message;
+    if (!message) return ContentService.createTextOutput('ok');
+
+    chatId = message.chat.id;
+    if (allowedChatIds.length > 0 && allowedChatIds.indexOf(String(chatId)) === -1) {
+      return ContentService.createTextOutput('ok'); // 허용되지 않은 사용자는 무시
+    }
+
     var record = message.photo
       ? buildRecordFromPhoto(message, token)
       : buildRecordFromText(message);
@@ -55,10 +56,32 @@ function doPost(e) {
       '\n통화시작: ' + record.callTime +
       '\n메모: ' + (record.memo || '-'));
   } catch (err) {
-    replyTelegram(token, chatId, '⚠️ 기록 실패: ' + err.message);
+    logError(err, e);
+    if (token && chatId) {
+      try {
+        replyTelegram(token, chatId, '⚠️ 기록 실패: ' + err.message);
+      } catch (err2) {
+        // 텔레그램 응답 전송도 실패하면 에러로그 시트만 남긴다
+      }
+    }
   }
 
   return ContentService.createTextOutput('ok');
+}
+
+function logError(err, e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('에러로그');
+  if (!sheet) {
+    sheet = ss.insertSheet('에러로그');
+    sheet.appendRow(['시각', '에러 메시지', '스택', '원본 요청']);
+  }
+  sheet.appendRow([
+    Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss'),
+    err && err.message,
+    err && err.stack,
+    e && e.postData ? e.postData.contents : ''
+  ]);
 }
 
 function buildRecordFromText(message) {
