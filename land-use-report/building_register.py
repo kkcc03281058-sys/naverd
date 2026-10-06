@@ -23,7 +23,14 @@ def fetch_building_register(address: str, dong: str = None) -> str:
 
         input("\n브라우저 창에서 로그인을 완료하신 후, 여기로 돌아와서 Enter를 눌러주세요...")
 
-        page.goto("https://eais.go.kr/moct/bci/aaa02/BCIAAA02L01")
+        # 주소를 직접 입력(goto)하면 로그인 직후의 내부 리다이렉트와 충돌이 나서,
+        # 실제 사람이 하듯 "민원서비스" 메뉴를 통해 들어간다
+        page.get_by_text("민원서비스", exact=True).hover()
+        page.wait_for_timeout(800)
+        page.get_by_text("민원서비스", exact=True).click()
+        page.wait_for_timeout(1000)
+        page.get_by_role("link", name=re.compile("건축물대장")).first.click()
+        page.wait_for_url(re.compile("BCIAAA02L01"), timeout=15000)
         page.wait_for_timeout(1500)
 
         search_box = page.get_by_placeholder("건축물 소재지를 입력하세요.")
