@@ -34,7 +34,7 @@ def fetch_building_register(address: str, dong: str = None) -> str:
         page.wait_for_url(re.compile("BCIAAA02L01"), timeout=15000)
         page.wait_for_timeout(1500)
 
-        search_box = page.get_by_placeholder("건축물 소재지를 입력하세요.")
+        search_box = page.locator('input[placeholder="건축물 소재지를 입력하세요."]:visible').first
         search_box.click()
         search_box.fill(address)
         page.wait_for_timeout(1500)
