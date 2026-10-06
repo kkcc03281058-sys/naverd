@@ -30,7 +30,7 @@ def fetch_building_register(address: str, dong: str = None) -> str:
         page.wait_for_timeout(800)
         menu_link.click()
         page.wait_for_timeout(1000)
-        page.get_by_role("link", name=re.compile("건축물대장")).first.click()
+        page.get_by_role("link", name="건축물대장발급", exact=True).click()
         page.wait_for_url(re.compile("BCIAAA02L01"), timeout=15000)
         page.wait_for_timeout(1500)
 
