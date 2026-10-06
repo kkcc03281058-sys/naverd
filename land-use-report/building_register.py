@@ -11,6 +11,7 @@
 
 import re
 import sys
+import traceback
 from playwright.sync_api import sync_playwright
 
 
@@ -105,14 +106,23 @@ def parse_building_register(text: str) -> dict:
     }
 
 
-if __name__ == "__main__":
+def main():
     address = sys.argv[1] if len(sys.argv) > 1 else input("주소를 입력하세요 (예: 경기도 광주시 능평동 488-15): ")
     dong = sys.argv[2] if len(sys.argv) > 2 else None
 
-    print(f"'{address}' 조회 중...\n")
+    print(f"'{address}' 조회 중...\n", flush=True)
     raw_text = fetch_building_register(address, dong)
     info = parse_building_register(raw_text)
 
     print("===== 건축물대장(표제부) 조회 결과 =====")
     for key, value in info.items():
         print(f"{key}: {value}")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        print("\n===== 에러가 발생했습니다 (아래 내용을 캡처해서 보내주세요) =====")
+        traceback.print_exc()
+    input("\n(아무 키나 눌러서 창을 닫으세요)")
