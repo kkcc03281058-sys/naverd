@@ -39,14 +39,13 @@ def fetch_building_register(address: str, dong: str = None) -> str:
         page.wait_for_url(re.compile("BCIAAA02L01"), timeout=15000)
         page.wait_for_timeout(1500)
 
-        # [디버그용 임시 정지] 검색창을 못 찾는 문제를 확인하기 위해 여기서 멈춘다.
-        # 브라우저 창에서 F12를 눌러 주소 입력창 부분을 요소 선택(화살표 아이콘)으로
-        # 클릭해서 어떤 HTML 구조인지 확인한 뒤 Enter를 눌러주세요.
-        input("\n검색 페이지 도착. F12로 검색창을 확인하신 후 Enter를 눌러주세요...")
-
-        search_box = page.locator('input[placeholder="건축물 소재지를 입력하세요."]:visible').first
-        search_box.click()
-        search_box.fill(address)
+        # 화면에 보이는 "건축물 소재지를 입력하세요." 글자는 실제 입력창이 아니라
+        # 별도의 안내문구(span.multiselect__placeholder)이고, 진짜 입력창은 그
+        # 뒤에 숨어있다가 클릭해야 활성화된다. 그래서 안내문구를 클릭해 활성화한
+        # 뒤 키보드로 바로 타이핑한다.
+        page.get_by_text("건축물 소재지를 입력하세요.", exact=True).click()
+        page.wait_for_timeout(500)
+        page.keyboard.type(address)
         page.wait_for_timeout(1500)
 
         # 자동완성 목록에서 "지번주소"로 표시된 항목의 "선택" 버튼 클릭
