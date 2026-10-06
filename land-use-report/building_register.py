@@ -25,9 +25,10 @@ def fetch_building_register(address: str, dong: str = None) -> str:
 
         # 주소를 직접 입력(goto)하면 로그인 직후의 내부 리다이렉트와 충돌이 나서,
         # 실제 사람이 하듯 "민원서비스" 메뉴를 통해 들어간다
-        page.get_by_text("민원서비스", exact=True).hover()
+        menu_link = page.get_by_role("link", name="민원서비스")
+        menu_link.hover()
         page.wait_for_timeout(800)
-        page.get_by_text("민원서비스", exact=True).click()
+        menu_link.click()
         page.wait_for_timeout(1000)
         page.get_by_role("link", name=re.compile("건축물대장")).first.click()
         page.wait_for_url(re.compile("BCIAAA02L01"), timeout=15000)
