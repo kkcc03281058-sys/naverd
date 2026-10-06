@@ -15,7 +15,7 @@ import traceback
 from playwright.sync_api import sync_playwright
 
 
-def fetch_building_register(address: str, dong: str = None, ho: str = None) -> str:
+def fetch_building_register(address: str) -> str:
     with sync_playwright() as p:
         # launch_persistent_context를 쓰면 로그인 상태(쿠키)가 eais_login_profile
         # 폴더에 저장되어서, 세움터 세션이 살아있는 동안(보통 1시간)은
@@ -48,24 +48,24 @@ def fetch_building_register(address: str, dong: str = None, ho: str = None) -> s
         page.keyboard.type(address)
         page.wait_for_timeout(1500)
 
-        # 자동완성 목록은 기본으로 맨 위(지번주소) 항목에 "선택" 버튼이 바로 보인다
-        page.get_by_role("button", name="선택", exact=True).first.click()
+        # "선택" 버튼을 직접 찾는 대신, 토지이음 스크립트 때와 같은 방식으로
+        # 자동완성 목록 맨 위(지번주소) 항목을 방향키+Enter로 선택한다
+        page.keyboard.press("ArrowDown")
+        page.keyboard.press("Enter")
         page.wait_for_timeout(1500)
 
-        # 동이 여러 개인 건물이면 "동명" 선택 목록이 한 번 더 뜬다
+        # 동이 여러 개인 건물이면 "동명" 선택 목록이 한 번 더 뜨는데, 마찬가지로
+        # 맨 위 항목을 방향키+Enter로 선택한다 (현재는 특정 동 지정은 지원 안 함)
         if page.locator(":text('동명')").count() > 0:
-            if dong:
-                page.get_by_text(dong, exact=False).first.click()
-                page.wait_for_timeout(300)
-            page.get_by_role("button", name="선택", exact=True).first.click()
+            page.keyboard.press("ArrowDown")
+            page.keyboard.press("Enter")
             page.wait_for_timeout(1500)
 
-        # 호가 여러 개인 건물(공동주택/다세대 등)이면 "호명" 선택 목록이 한 번 더 뜬다
+        # 호가 여러 개인 건물(공동주택/다세대 등)이면 "호명" 선택 목록도 뜨는데,
+        # 마찬가지로 맨 위 항목을 방향키+Enter로 선택한다 (특정 호 지정은 미지원)
         if page.locator(":text('호명')").count() > 0:
-            if ho:
-                page.get_by_text(ho, exact=False).first.click()
-                page.wait_for_timeout(300)
-            page.get_by_role("button", name="선택", exact=True).first.click()
+            page.keyboard.press("ArrowDown")
+            page.keyboard.press("Enter")
             page.wait_for_timeout(1500)
 
         # 주소/동/호 태그를 다 고른 뒤에는 돋보기(검색) 버튼을 직접 눌러야
@@ -140,11 +140,9 @@ def parse_building_register(text: str) -> dict:
 
 def main():
     address = sys.argv[1] if len(sys.argv) > 1 else input("주소를 입력하세요 (예: 경기도 광주시 능평동 488-15): ")
-    dong = sys.argv[2] if len(sys.argv) > 2 else None
-    ho = sys.argv[3] if len(sys.argv) > 3 else None
 
     print(f"'{address}' 조회 중...\n", flush=True)
-    raw_text = fetch_building_register(address, dong, ho)
+    raw_text = fetch_building_register(address)
     info = parse_building_register(raw_text)
 
     print("===== 건축물대장(표제부) 조회 결과 =====")
