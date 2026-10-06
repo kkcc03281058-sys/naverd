@@ -17,11 +17,16 @@ from playwright.sync_api import sync_playwright
 
 def fetch_building_register(address: str, dong: str = None) -> str:
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
+        # launch_persistent_context를 쓰면 로그인 상태(쿠키)가 eais_login_profile
+        # 폴더에 저장되어서, 세움터 세션이 살아있는 동안(보통 1시간)은
+        # 다시 실행해도 매번 로그인할 필요가 없다. (이 폴더는 지우지 말 것)
+        context = p.chromium.launch_persistent_context(
+            "eais_login_profile", headless=False
+        )
+        page = context.new_page()
         page.goto("https://cloud.eais.go.kr")
 
-        input("\n브라우저 창에서 로그인을 완료하신 후, 여기로 돌아와서 Enter를 눌러주세요...")
+        input("\n이미 로그인되어 있으면 그냥 Enter, 아니면 로그인을 완료하신 후 Enter를 눌러주세요...")
 
         # 주소를 직접 입력(goto)하면 로그인 직후의 내부 리다이렉트와 충돌이 나서,
         # 실제 사람이 하듯 "민원서비스" 메뉴를 통해 들어간다
@@ -85,7 +90,7 @@ def fetch_building_register(address: str, dong: str = None) -> str:
             popup.wait_for_timeout(1000)
             page2_text = popup.locator("body").inner_text()
 
-        browser.close()
+        context.close()
 
     return page1_text + "\n" + page2_text
 
