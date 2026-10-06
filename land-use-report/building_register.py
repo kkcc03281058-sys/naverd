@@ -15,7 +15,7 @@ import traceback
 from playwright.sync_api import sync_playwright
 
 
-def fetch_building_register(address: str, dong: str = None) -> str:
+def fetch_building_register(address: str, dong: str = None, ho: str = None) -> str:
     with sync_playwright() as p:
         # launch_persistent_context를 쓰면 로그인 상태(쿠키)가 eais_login_profile
         # 폴더에 저장되어서, 세움터 세션이 살아있는 동안(보통 1시간)은
@@ -48,23 +48,34 @@ def fetch_building_register(address: str, dong: str = None) -> str:
         page.keyboard.type(address)
         page.wait_for_timeout(1500)
 
-        # 자동완성 목록에서 "지번주소"로 표시된 항목의 "선택" 버튼 클릭
-        page.locator("li:has-text('지번주소')").first.get_by_text("선택", exact=True).click()
+        # 자동완성 목록은 기본으로 맨 위(지번주소) 항목에 "선택" 버튼이 바로 보인다
+        page.get_by_role("button", name="선택", exact=True).first.click()
         page.wait_for_timeout(1500)
 
         # 동이 여러 개인 건물이면 "동명" 선택 목록이 한 번 더 뜬다
-        dong_list = page.locator("li:has-text('동명')")
-        if dong_list.count() > 0:
+        if page.locator(":text('동명')").count() > 0:
             if dong:
-                page.locator(f"li:has-text('{dong}')").first.get_by_text("선택", exact=True).click()
-            else:
-                dong_list.first.get_by_text("선택", exact=True).click()
+                page.get_by_text(dong, exact=False).first.click()
+                page.wait_for_timeout(300)
+            page.get_by_role("button", name="선택", exact=True).first.click()
             page.wait_for_timeout(1500)
 
-        # 결과 행의 체크박스가 비어있으면 체크 (보통은 자동으로 체크되어 있음)
-        checkbox = page.locator("table tbody tr").first.locator("input[type=checkbox]")
-        if checkbox.count() > 0 and not checkbox.is_checked():
-            checkbox.check()
+        # 호가 여러 개인 건물(공동주택/다세대 등)이면 "호명" 선택 목록이 한 번 더 뜬다
+        if page.locator(":text('호명')").count() > 0:
+            if ho:
+                page.get_by_text(ho, exact=False).first.click()
+                page.wait_for_timeout(300)
+            page.get_by_role("button", name="선택", exact=True).first.click()
+            page.wait_for_timeout(1500)
+
+        # 주소/동/호 태그를 다 고른 뒤에는 돋보기(검색) 버튼을 직접 눌러야
+        # 실제 조회결과가 나온다 (버튼의 접근성 이름은 "검색")
+        page.get_by_role("button", name="검색", exact=True).first.click()
+        page.wait_for_timeout(1500)
+
+        # 결과 목록은 일반 표가 아니라 AG-Grid라서, 체크박스 칸(col-id="0")을
+        # 직접 클릭해야 선택된다
+        page.locator('div.ag-cell[col-id="0"]').first.click()
         page.wait_for_timeout(500)
 
         page.get_by_text("신청할 민원 담기", exact=False).click()
@@ -78,8 +89,9 @@ def fetch_building_register(address: str, dong: str = None) -> str:
         page.wait_for_timeout(2000)
 
         # 신청내역 목록에서 "표제부" 행의 "열람" 버튼 클릭 -> 새 탭(팝업)으로 보고서 표시
+        # (이 사이트는 결과 목록이 일반 표가 아닐 수 있어 role="row"로 찾는다)
         with page.expect_popup() as popup_info:
-            page.locator("tr:has-text('표제부')").first.get_by_text("열람", exact=True).click()
+            page.get_by_role("row", name=re.compile("표제부")).first.get_by_text("열람", exact=True).click()
         popup = popup_info.value
         popup.wait_for_load_state()
         popup.wait_for_timeout(1000)
@@ -126,9 +138,10 @@ def parse_building_register(text: str) -> dict:
 def main():
     address = sys.argv[1] if len(sys.argv) > 1 else input("주소를 입력하세요 (예: 경기도 광주시 능평동 488-15): ")
     dong = sys.argv[2] if len(sys.argv) > 2 else None
+    ho = sys.argv[3] if len(sys.argv) > 3 else None
 
     print(f"'{address}' 조회 중...\n", flush=True)
-    raw_text = fetch_building_register(address, dong)
+    raw_text = fetch_building_register(address, dong, ho)
     info = parse_building_register(raw_text)
 
     print("===== 건축물대장(표제부) 조회 결과 =====")
