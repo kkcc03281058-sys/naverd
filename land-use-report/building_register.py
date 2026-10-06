@@ -84,7 +84,10 @@ def fetch_building_register(address: str, dong: str = None, ho: str = None) -> s
         page.get_by_text("건축물대장 발급 신청", exact=False).click()
         page.wait_for_timeout(1500)
 
-        # 발급/열람 선택은 기본값(발급) 그대로 두고 바로 신청
+        # "건축물대장을 열람합니다." 선택 (기본값인 발급 대신 열람으로 변경)
+        page.get_by_text("건축물대장을 열람합니다.", exact=True).click()
+        page.wait_for_timeout(500)
+
         page.get_by_text("신청하기", exact=True).click()
         page.wait_for_timeout(2000)
 
